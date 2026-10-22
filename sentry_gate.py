@@ -1,11 +1,13 @@
 """
 Sentry-Gate: High-Performance Decision Gate with Local and Cloud Routing
-Refactored as a FastAPI backend application for hackathon submission.
+Refactored as a FastAPI backend application with unified frontend serving for hackathon submission.
 """
 
 import time
+import os
 import uvicorn
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import boto3
@@ -40,7 +42,7 @@ app = FastAPI(
 # Enable CORS for frontend integration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allows all origins for local hackathon testing
+    allow_origins=["*"],  # Allows all origins for local and cloud testing
     allow_credentials=True,
     allow_methods=["*"],  # Allows all methods (GET, POST, etc.)
     allow_headers=["*"],  # Allows all headers
@@ -195,6 +197,15 @@ class SentryGate:
                 return "A high-performance decision gate routes simple tasks locally via System 1 while directing complex workloads to cloud LLMs (System 2) to optimize cost and latency."
             else:
                 raise HTTPException(status_code=500, detail=f"Bedrock API error: {error_msg}")
+
+@app.get("/", response_class=HTMLResponse)
+async def serve_frontend():
+    """
+    Serve the Sentry-Gate WebGL fluid frontend directly from the backend root.
+    """
+    if os.path.exists("index.html"):
+        return FileResponse("index.html")
+    return HTMLResponse("<h1>Sentry-Gate API is running</h1><p>index.html not found in root directory.</p>", status_code=404)
 
 @app.get("/health", response_model=HealthResponse)
 async def health_check():

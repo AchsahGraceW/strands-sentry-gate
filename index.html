@@ -161,8 +161,8 @@ footer{font-size:.8rem}
 <footer>© 2026 Sentry-Gate — Apache 2.0 open source gateway.</footer>
 
 <script>
-/* ---------- Config ---------- */
-const API = window.SENTRY_API || "http://localhost:8000";
+/* ---------- Config (Dynamic API routing for Local vs Render Production) ---------- */
+const API = window.SENTRY_API || (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" ? "http://localhost:8000" : "");
 
 /* ---------- Fluid simulation (Pavel Dobryakov's WebGL fluid, trimmed: no bloom) ---------- */
 function fluid(canvas){

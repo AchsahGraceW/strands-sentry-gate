@@ -1,0 +1,2 @@
+[tool.vercel]
+entrypoint = "sentry_gate:app"

@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sentry-Gate: Heuristic Gateway for Enterprise AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script type="importmap">{ "imports": { "lenis": "https://unpkg.com/lenis@1.3.19/dist/lenis.mjs" } }</script>
+<style>
+:root{--hero-base:#04050c;--heading:#eef0f6;--body-muted:#b9becf;--on-media:#fff;--action-inverse:#fff;--action-inverse-fg:#2f2f33;--glass-fill:rgba(255,255,255,.08);--glass-border:rgba(255,255,255,.16);--scrim:rgba(4,5,12,.46);--scrim-strong:rgba(4,5,12,.68);--scrim-soft:rgba(4,5,12,.12);--duration-fast:150ms;--ease-entrance:cubic-bezier(.2,0,0,1);--s1:#5df0a8;--s2:#60a5fa}
+*{margin:0;box-sizing:border-box}
+html{font-size:16px}
+@media(max-width:1920px){html{font-size:.833333vw}}
+@media(max-width:1440px){html{font-size:1.111111vw}}
+@media(max-width:1024px){html{font-size:1.5625vw}}
+@media(max-width:640px){html{font-size:4.444444vw}}
+html.lenis,html.lenis body{height:auto}
+.lenis.lenis-smooth{scroll-behavior:auto!important}
+body{font-family:"Onest",sans-serif;background:var(--hero-base);color:var(--heading);overflow-x:hidden;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+button{font:inherit;border:0;background:none;cursor:pointer;color:inherit}
+#fx{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+.scrim{position:fixed;inset:0;z-index:1;pointer-events:none;background:radial-gradient(115% 95% at 50% 46%,var(--scrim-strong) 0%,var(--scrim-strong) 24%,var(--scrim) 52%,var(--scrim-soft) 100%)}
+main,footer{position:relative;z-index:10}
+.glass{border:1px solid var(--glass-border);background:var(--glass-fill);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-radius:9999px}
+.pill{display:inline-flex;align-items:center;justify-content:center;height:2.5rem;border-radius:9999px;background:var(--action-inverse);padding:0 1.125rem;font-size:.85rem;font-weight:500;color:var(--action-inverse-fg);box-shadow:0 1px 2px rgba(0,0,0,.05);transition:background var(--duration-fast) var(--ease-entrance);white-space:nowrap}
+.pill:hover{background:rgba(255,255,255,.85)}
+.pill:focus-visible{outline:none;box-shadow:0 0 0 2px rgba(255,255,255,.7)}
+.rv{opacity:0;transform:translateY(var(--y,1.25rem));transition:opacity .7s var(--ease-entrance),transform .7s var(--ease-entrance)}
+.rv.in{opacity:1;transform:none}
+.w{display:inline-block;opacity:0;transform:translateY(var(--dy));transition:opacity .72s cubic-bezier(.215,.61,.355,1),transform .72s cubic-bezier(.215,.61,.355,1)}
+.w.in{opacity:1;transform:none}
+header{position:absolute;inset-inline:0;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;padding:1.25rem}
+.brand{display:flex;align-items:center;gap:.6rem;font-weight:500;font-size:1.15rem;color:var(--on-media);letter-spacing:-.01em}
+.brand svg{width:1.35rem;height:1.35rem}
+.links{display:none;position:absolute;left:50%;transform:translateX(-50%);height:3rem;align-items:center;gap:2.25rem;padding:0 1.75rem}
+.links a{font-size:.95rem;color:var(--body-muted);white-space:nowrap;transition:color var(--duration-fast) var(--ease-entrance)}
+.links a:hover{color:var(--heading)}
+.hero{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100lvh;width:100%;padding:5rem 1.25rem 3rem;text-align:center}
+.col{display:flex;flex-direction:column;align-items:center;width:100%;max-width:22rem}
+.badge{display:inline-flex;align-items:center;gap:.5rem;padding:.4rem .875rem;font-size:.72rem;color:var(--body-muted)}
+.dot{width:.4rem;height:.4rem;border-radius:50%;background:var(--s1);box-shadow:0 0 .5rem var(--s1)}
+h1{margin-top:1.25rem;max-width:20rem;font-size:2rem;font-weight:500;line-height:1.1;letter-spacing:-.02em;color:var(--heading)}
+.sub{margin-top:1rem;max-width:20rem;font-size:1rem;line-height:1.5;color:var(--body-muted)}
+.formwrap{margin-top:1.75rem;display:flex;flex-direction:column;align-items:center;width:100%}
+.bar{display:flex;align-items:center;width:37rem;max-width:100%;height:3.5rem;padding-left:1.25rem;padding-right:.35rem;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.bar input{flex:1;min-width:0;height:100%;background:transparent;border:0;outline:0;color:var(--heading);font:inherit;font-size:.95rem}
+.bar input::placeholder{color:var(--body-muted)}
+.chips{display:flex;flex-wrap:wrap;justify-content:center;gap:.6rem;margin-top:1.1rem}
+.chip{padding:.45rem .9rem;font-size:.78rem;color:var(--body-muted);transition:color var(--duration-fast) var(--ease-entrance),border-color var(--duration-fast) var(--ease-entrance)}
+.chip:hover{color:var(--heading);border-color:rgba(255,255,255,.36)}
+.status{margin-top:1.1rem;font:400 .68rem "JetBrains Mono",ui-monospace,monospace;color:var(--body-muted);display:flex;flex-wrap:wrap;justify-content:center;gap:.4rem 1.2rem}
+.status i{display:inline-block;width:.4rem;height:.4rem;border-radius:50%;margin-right:.4rem;background:#f87171;vertical-align:middle}
+.status.ok i{background:var(--s1);box-shadow:0 0 .5rem var(--s1)}
+.sec{position:relative;max-width:64rem;margin:0 auto;padding:4rem 1.25rem}
+h2{font-size:1.6rem;font-weight:500;letter-spacing:-.02em;line-height:1.15}
+.lead{margin-top:.6rem;color:var(--body-muted);line-height:1.5;max-width:34rem;font-size:.95rem}
+.card{border:1px solid var(--glass-border);background:rgba(8,12,26,.72);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-radius:1.25rem;padding:1.25rem}
+.two{display:grid;gap:1rem;margin-top:1.5rem;grid-template-columns:1fr}
+.two p{margin-top:.8rem;color:var(--body-muted);line-height:1.55;font-size:.92rem}
+.tag{display:inline-block;padding:.25rem .7rem;border-radius:9999px;font-size:.78rem;font-weight:500;border:1px solid}
+.t1{color:var(--s1);border-color:rgba(93,240,168,.3);background:rgba(93,240,168,.08)}
+.t2{color:var(--s2);border-color:rgba(96,165,250,.3);background:rgba(96,165,250,.08)}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:.8rem;margin:1.5rem 0 1rem}
+.stat{padding:1rem 1.1rem}
+.stat span{display:block;font-size:.8rem;color:var(--body-muted)}
+.stat b{display:block;margin-top:.35rem;font-size:1.7rem;font-weight:500;letter-spacing:-.02em}
+#log{max-height:26rem;overflow-y:auto;padding-right:.3rem}
+.msg{padding:.85rem 1rem;margin-bottom:.7rem;border-radius:1rem;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);font-size:.92rem;line-height:1.5;word-break:break-word}
+.msg.user{background:var(--glass-fill);margin-left:2rem}
+.msg.err{border-color:rgba(248,113,113,.4)}
+.msg.wait{opacity:.6}
+.msg small{display:block;margin-bottom:.3rem;font-size:.78rem;color:var(--body-muted)}
+.msg p{white-space:pre-wrap}
+.mb{display:inline-block;margin-top:.6rem;padding:.25rem .6rem;border-radius:.4rem;border:1px solid;font:500 .68rem "JetBrains Mono",ui-monospace,monospace}
+.console-bar{margin-top:.9rem}
+.console-bar .bar{width:100%}
+footer{display:flex;justify-content:center;padding:2rem 1.25rem;font-size:.72rem;color:var(--body-muted);text-align:center}
+@media(min-width:640px){
+header{padding:1.75rem 2.5rem}.brand{font-size:1.375rem}.brand svg{width:1.5rem;height:1.5rem}
+.links{display:flex}.pill{height:2.75rem;padding:0 1.375rem;font-size:.95rem}
+.hero{padding:5rem 2.5rem 3rem}.col{max-width:40rem}.badge{font-size:.8rem}
+h1{margin-top:1.75rem;max-width:34rem;font-size:3.5rem}.sub{margin-top:1.25rem;max-width:34rem;font-size:1.1rem}
+.formwrap{margin-top:2.5rem}.bar{height:4rem;padding-left:1.5rem;padding-right:.4rem}.bar input{font-size:1.15rem}
+.chip{font-size:.85rem}.status{font-size:.74rem}
+.sec{padding:5rem 2.5rem}h2{font-size:2.25rem}.lead{font-size:1.05rem}
+.two{grid-template-columns:1fr 1fr}.stats{grid-template-columns:repeat(4,1fr)}.card{padding:1.5rem}
+footer{font-size:.8rem}
+}
+@media(min-width:1024px){.col{max-width:52rem}h1{max-width:46rem;font-size:5rem}.sub{max-width:none;font-size:1.2rem}}
+</style>
+</head>
+<body>
+<canvas id="fx" aria-hidden="true"></canvas>
+<div class="scrim" aria-hidden="true"></div>
+
+<header class="rv" data-d="150" style="--y:-.75rem">
+  <a href="#top" class="brand">
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M2.5 9c2.5 0 2.5 4.2 5 4.2S10 9 12 9s2.5 4.2 5 4.2S19.5 9 21.5 9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M2.5 15c2.5 0 2.5 4.2 5 4.2S10 15 12 15s2.5 4.2 5 4.2S19.5 15 21.5 15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" opacity=".5"/></svg>
+    Sentry-Gate
+  </a>
+  <nav class="links glass">
+    <a href="#routing">Routing</a><a href="#telemetry">Telemetry</a><a href="#console">Console</a>
+  </nav>
+  <a href="#console" class="pill">Launch Console</a>
+</header>
+
+<main id="top">
+  <section class="hero">
+    <div class="col">
+      <p class="badge glass rv" data-d="320"><i class="dot"></i>System 1 Edge &amp; System 2 Bedrock Router</p>
+      <h1 id="h1" data-w="480,85,26">Heuristic Gateway for Enterprise AI</h1>
+      <p class="sub" id="sub" data-w="1150,22,14">Route simple edge tasks at sub-millisecond speeds while escalating complex workloads cleanly to AWS Bedrock Nova Lite.</p>
+      <div class="formwrap rv" data-d="1450">
+        <form class="bar glass" data-send data-go>
+          <input type="text" placeholder="Enter workload prompt or query" required aria-label="Workload prompt">
+          <button type="submit" class="pill">Evaluate Route</button>
+        </form>
+        <div class="chips">
+          <button class="chip glass" data-p="hi">Test greeting (System 1)</button>
+          <button class="chip glass" data-p="explain photosynthesis">Test factual (System 1)</button>
+          <button class="chip glass" data-p="Design a microservices architecture using FastAPI, Redis, and AWS Bedrock">Test architecture (System 2)</button>
+        </div>
+        <div class="status" id="status"><span><i></i><em>STATUS: CHECKING</em></span><span>ROUTER: LOCAL_HEURISTIC_V1</span><span>MODEL: US.AMAZON.NOVA-LITE-V1:0</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="routing">
+    <h2>Two systems, one gate</h2>
+    <p class="lead">Every prompt is classified in microseconds. Simple work stays on the edge; heavy work goes to the cloud.</p>
+    <div class="two">
+      <div class="card"><span class="tag t1">System 1 · Edge</span><p>Greetings, definitions and simple facts are answered by a local heuristic router. No cloud call, no tokens spent, and the estimated savings are tracked per request.</p></div>
+      <div class="card"><span class="tag t2">System 2 · AWS Bedrock</span><p>Code, architecture and multi-step workflows are escalated to Amazon Nova Lite through the Bedrock Converse API.</p></div>
+    </div>
+  </section>
+
+  <section class="sec" id="console">
+    <h2>Command Center</h2>
+    <p class="lead">Dynamic heuristic routing between the high-speed local edge and AWS Bedrock.</p>
+    <div class="stats" id="telemetry">
+      <div class="card stat"><span>Total executions</span><b id="sT">0</b></div>
+      <div class="card stat"><span>System 1 (Edge)</span><b id="sA">0</b></div>
+      <div class="card stat"><span>System 2 (Bedrock)</span><b id="sB">0</b></div>
+      <div class="card stat"><span>Token savings</span><b id="sS">$0.0000</b></div>
+    </div>
+    <div class="card">
+      <div id="log" data-lenis-prevent></div>
+      <div class="console-bar">
+        <form class="bar glass" data-send>
+          <input type="text" placeholder="Enter query or enterprise workload specification" required aria-label="Query">
+          <button type="submit" class="pill">Send</button>
+        </form>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>© 2026 Sentry-Gate — Apache 2.0 open source gateway.</footer>
+
+<script>
+/* ---------- Config ---------- */
+const API = window.SENTRY_API || "http://localhost:8000";
+
+/* ---------- Fluid simulation (Pavel Dobryakov's WebGL fluid, trimmed: no bloom) ---------- */
+function fluid(canvas){
+  canvas.width=canvas.clientWidth;canvas.height=canvas.clientHeight;
+  const C={SIM:200,DYE:512,DD:.958,VD:.96,PD:.8,PI:20,CURL:42,R:.22,BACK:[4,5,12]};
+  const PR={alpha:true,depth:false,stencil:false,antialias:false};
+  let gl=canvas.getContext("webgl2",PR);const w2=!!gl;
+  if(!w2)gl=canvas.getContext("webgl",PR)||canvas.getContext("experimental-webgl",PR);
+  if(!gl)return;
+  let hf,lin;
+  if(w2){gl.getExtension("EXT_color_buffer_float");lin=gl.getExtension("OES_texture_float_linear");}
+  else{hf=gl.getExtension("OES_texture_half_float");lin=gl.getExtension("OES_texture_half_float_linear");if(!hf)return;}
+  const TT=w2?gl.HALF_FLOAT:hf.HALF_FLOAT_OES;
+  const SHADE=!!lin&&!/Mobi|Android/i.test(navigator.userAgent);
+  const FILT=lin?gl.LINEAR:gl.NEAREST;
+  gl.clearColor(0,0,0,1);
+
+  const T2=gl.TEXTURE_2D,FB=gl.FRAMEBUFFER;
+  function ok(i,f){const t=gl.createTexture();gl.bindTexture(T2,t);
+    gl.texParameteri(T2,gl.TEXTURE_MIN_FILTER,gl.NEAREST);gl.texParameteri(T2,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
+    gl.texParameteri(T2,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(T2,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+    gl.texImage2D(T2,0,i,4,4,0,f,TT,null);const b=gl.createFramebuffer();gl.bindFramebuffer(FB,b);
+    gl.framebufferTexture2D(FB,gl.COLOR_ATTACHMENT0,T2,t,0);return gl.checkFramebufferStatus(FB)==gl.FRAMEBUFFER_COMPLETE;}
+  function fmt(i,f){if(ok(i,f))return{i,f};if(!w2)return null;
+    if(i==gl.R16F)return fmt(gl.RG16F,gl.RG);if(i==gl.RG16F)return fmt(gl.RGBA16F,gl.RGBA);return null;}
+  const fRGBA=w2?fmt(gl.RGBA16F,gl.RGBA):fmt(gl.RGBA,gl.RGBA);
+  const fRG=w2?fmt(gl.RG16F,gl.RG):fRGBA, fR=w2?fmt(gl.R16F,gl.RED):fRGBA;
+  if(!fRGBA||!fRG||!fR)return;
+
+  function compile(type,src){const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);
+    if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw gl.getShaderInfoLog(s);return s;}
+  const VS=compile(gl.VERTEX_SHADER,`precision highp float;attribute vec2 aPosition;varying vec2 vUv,vL,vR,vT,vB;uniform vec2 texelSize;
+    void main(){vUv=aPosition*.5+.5;vL=vUv-vec2(texelSize.x,0.);vR=vUv+vec2(texelSize.x,0.);vT=vUv+vec2(0.,texelSize.y);vB=vUv-vec2(0.,texelSize.y);gl_Position=vec4(aPosition,0.,1.);}`);
+  const H="precision highp float;precision highp sampler2D;varying vec2 vUv,vL,vR,vT,vB;";
+  function prog(fs){const p=gl.createProgram();gl.attachShader(p,VS);gl.attachShader(p,compile(gl.FRAGMENT_SHADER,H+fs));
+    gl.bindAttribLocation(p,0,"aPosition");gl.linkProgram(p);
+    if(!gl.getProgramParameter(p,gl.LINK_STATUS))throw gl.getProgramInfoLog(p);
+    const u={};for(let i=0,n=gl.getProgramParameter(p,gl.ACTIVE_UNIFORMS);i<n;i++){const k=gl.getActiveUniform(p,i).name;u[k]=gl.getUniformLocation(p,k);}
+    return{u,use(){gl.useProgram(p);}};}
+
+  const clr=prog("uniform sampler2D uTexture;uniform float value;void main(){gl_FragColor=value*texture2D(uTexture,vUv);}");
+  const colP=prog("uniform vec4 color;void main(){gl_FragColor=color;}");
+  const disp=prog("uniform sampler2D uTexture;void main(){vec3 C=texture2D(uTexture,vUv).rgb;gl_FragColor=vec4(C,max(C.r,max(C.g,C.b)));}");
+  const dispS=prog(`uniform sampler2D uTexture;uniform vec2 texelSize;void main(){
+    vec3 L=texture2D(uTexture,vL).rgb,R=texture2D(uTexture,vR).rgb,T=texture2D(uTexture,vT).rgb,B=texture2D(uTexture,vB).rgb,C=texture2D(uTexture,vUv).rgb;
+    float dx=length(R)-length(L),dy=length(T)-length(B);vec3 n=normalize(vec3(dx,dy,length(texelSize)));
+    float d=clamp(dot(n,vec3(0.,0.,1.))+.7,.7,1.);C*=d;gl_FragColor=vec4(C,max(C.r,max(C.g,C.b)));}`);
+  const splatP=prog(`uniform sampler2D uTarget;uniform float aspectRatio;uniform vec3 color;uniform vec2 point;uniform float radius;
+    void main(){vec2 p=vUv-point;p.x*=aspectRatio;vec3 s=exp(-dot(p,p)/radius)*color;gl_FragColor=vec4(texture2D(uTarget,vUv).xyz+s,1.);}`);
+  const advP=prog(`uniform sampler2D uVelocity,uSource;uniform vec2 texelSize;uniform float dt,dissipation;
+    void main(){vec2 coord=vUv-dt*texture2D(uVelocity,vUv).xy*texelSize;gl_FragColor=dissipation*texture2D(uSource,coord);gl_FragColor.a=1.;}`);
+  const divP=prog(`uniform sampler2D uVelocity;void main(){
+    float L=texture2D(uVelocity,vL).x,R=texture2D(uVelocity,vR).x,T=texture2D(uVelocity,vT).y,B=texture2D(uVelocity,vB).y;vec2 C=texture2D(uVelocity,vUv).xy;
+    if(vL.x<0.)L=-C.x;if(vR.x>1.)R=-C.x;if(vT.y>1.)T=-C.y;if(vB.y<0.)B=-C.y;gl_FragColor=vec4(.5*(R-L+T-B),0.,0.,1.);}`);
+  const curlP=prog(`uniform sampler2D uVelocity;void main(){
+    float L=texture2D(uVelocity,vL).y,R=texture2D(uVelocity,vR).y,T=texture2D(uVelocity,vT).x,B=texture2D(uVelocity,vB).x;gl_FragColor=vec4(.5*(R-L-T+B),0.,0.,1.);}`);
+  const vortP=prog(`uniform sampler2D uVelocity,uCurl;uniform float curl,dt;void main(){
+    float L=texture2D(uCurl,vL).x,R=texture2D(uCurl,vR).x,T=texture2D(uCurl,vT).x,B=texture2D(uCurl,vB).x,C=texture2D(uCurl,vUv).x;
+    vec2 f=.5*vec2(abs(T)-abs(B),abs(R)-abs(L));f/=length(f)+.0001;f*=curl*C;f.y*=-1.;
+    gl_FragColor=vec4(texture2D(uVelocity,vUv).xy+f*dt,0.,1.);}`);
+  const presP=prog(`uniform sampler2D uPressure,uDivergence;void main(){
+    float L=texture2D(uPressure,vL).x,R=texture2D(uPressure,vR).x,T=texture2D(uPressure,vT).x,B=texture2D(uPressure,vB).x;
+    gl_FragColor=vec4((L+R+B+T-texture2D(uDivergence,vUv).x)*.25,0.,0.,1.);}`);
+  const gradP=prog(`uniform sampler2D uPressure,uVelocity;void main(){
+    float L=texture2D(uPressure,vL).x,R=texture2D(uPressure,vR).x,T=texture2D(uPressure,vT).x,B=texture2D(uPressure,vB).x;
+    vec2 v=texture2D(uVelocity,vUv).xy;v-=vec2(R-L,T-B);gl_FragColor=vec4(v,0.,1.);}`);
+
+  gl.bindBuffer(gl.ARRAY_BUFFER,gl.createBuffer());
+  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,-1,1,1,1,1,-1]),gl.STATIC_DRAW);
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,gl.createBuffer());
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,new Uint16Array([0,1,2,0,2,3]),gl.STATIC_DRAW);
+  gl.vertexAttribPointer(0,2,gl.FLOAT,false,0,0);gl.enableVertexAttribArray(0);
+  const blit=d=>{gl.bindFramebuffer(FB,d);gl.drawElements(gl.TRIANGLES,6,gl.UNSIGNED_SHORT,0);};
+
+  function fbo(w,h,f,p){gl.activeTexture(gl.TEXTURE0);const t=gl.createTexture();gl.bindTexture(T2,t);
+    gl.texParameteri(T2,gl.TEXTURE_MIN_FILTER,p);gl.texParameteri(T2,gl.TEXTURE_MAG_FILTER,p);
+    gl.texParameteri(T2,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(T2,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+    gl.texImage2D(T2,0,f.i,w,h,0,f.f,TT,null);const b=gl.createFramebuffer();gl.bindFramebuffer(FB,b);
+    gl.framebufferTexture2D(FB,gl.COLOR_ATTACHMENT0,T2,t,0);gl.viewport(0,0,w,h);gl.clear(gl.COLOR_BUFFER_BIT);
+    return{b,w,h,at(i){gl.activeTexture(gl.TEXTURE0+i);gl.bindTexture(T2,t);return i;}};}
+  function dbl(w,h,f,p){let a=fbo(w,h,f,p),b=fbo(w,h,f,p);
+    return{get read(){return a;},set read(v){a=v;},get write(){return b;},set write(v){b=v;},swap(){const x=a;a=b;b=x;}};}
+  function rdbl(d,w,h,f,p){const n=fbo(w,h,f,p);clr.use();gl.uniform1i(clr.u.uTexture,d.read.at(0));gl.uniform1f(clr.u.value,1);blit(n.b);
+    d.read=n;d.write=fbo(w,h,f,p);return d;}
+  function res(r){let a=gl.drawingBufferWidth/gl.drawingBufferHeight;if(a<1)a=1/a;const mx=Math.round(r*a),mn=Math.round(r);
+    return gl.drawingBufferWidth>gl.drawingBufferHeight?{w:mx,h:mn}:{w:mn,h:mx};}
+
+  let sw,sh,dw,dh,dye,vel,div,crl,prs;
+  function init(){const s=res(C.SIM),d=res(C.DYE);sw=s.w;sh=s.h;dw=d.w;dh=d.h;
+    dye=dye?rdbl(dye,dw,dh,fRGBA,FILT):dbl(dw,dh,fRGBA,FILT);
+    vel=vel?rdbl(vel,sw,sh,fRG,FILT):dbl(sw,sh,fRG,FILT);
+    div=fbo(sw,sh,fR,gl.NEAREST);crl=fbo(sw,sh,fR,gl.NEAREST);prs=dbl(sw,sh,fR,gl.NEAREST);}
+
+  function HSV(h,s,v){const i=Math.floor(h*6),f=h*6-i,p=v*(1-s),q=v*(1-f*s),t=v*(1-(1-f)*s);
+    switch(i%6){case 0:return{r:v,g:t,b:p};case 1:return{r:q,g:v,b:p};case 2:return{r:p,g:v,b:t};
+      case 3:return{r:p,g:q,b:v};case 4:return{r:t,g:p,b:v};default:return{r:v,g:p,b:q};}}
+  function gen(){const c=HSV(.5+Math.random()*.42,.95,1);c.r*=.92;c.g*=.92;c.b*=.92;return c;}
+
+  function splat(x,y,dx,dy,c){
+    gl.viewport(0,0,sw,sh);splatP.use();
+    gl.uniform1i(splatP.u.uTarget,vel.read.at(0));gl.uniform1f(splatP.u.aspectRatio,canvas.width/canvas.height);
+    gl.uniform2f(splatP.u.point,x/canvas.width,1-y/canvas.height);gl.uniform3f(splatP.u.color,dx,-dy,1);
+    gl.uniform1f(splatP.u.radius,C.R/100);blit(vel.write.b);vel.swap();
+    gl.viewport(0,0,dw,dh);gl.uniform1i(splatP.u.uTarget,dye.read.at(0));
+    gl.uniform3f(splatP.u.color,c.r,c.g,c.b);blit(dye.write.b);dye.swap();}
+  function multi(n){for(let i=0;i<n;i++){const c=gen();c.r*=10;c.g*=10;c.b*=10;
+    splat(canvas.width*Math.random(),canvas.height*Math.random(),1000*(Math.random()-.5),1000*(Math.random()-.5),c);}}
+
+  function step(dt){
+    gl.disable(gl.BLEND);gl.viewport(0,0,sw,sh);const ts=[1/sw,1/sh];
+    curlP.use();gl.uniform2f(curlP.u.texelSize,ts[0],ts[1]);gl.uniform1i(curlP.u.uVelocity,vel.read.at(0));blit(crl.b);
+    vortP.use();gl.uniform2f(vortP.u.texelSize,ts[0],ts[1]);gl.uniform1i(vortP.u.uVelocity,vel.read.at(0));
+    gl.uniform1i(vortP.u.uCurl,crl.at(1));gl.uniform1f(vortP.u.curl,C.CURL);gl.uniform1f(vortP.u.dt,dt);blit(vel.write.b);vel.swap();
+    divP.use();gl.uniform2f(divP.u.texelSize,ts[0],ts[1]);gl.uniform1i(divP.u.uVelocity,vel.read.at(0));blit(div.b);
+    clr.use();gl.uniform1i(clr.u.uTexture,prs.read.at(0));gl.uniform1f(clr.u.value,C.PD);blit(prs.write.b);prs.swap();
+    presP.use();gl.uniform2f(presP.u.texelSize,ts[0],ts[1]);gl.uniform1i(presP.u.uDivergence,div.at(0));
+    for(let i=0;i<C.PI;i++){gl.uniform1i(presP.u.uPressure,prs.read.at(1));blit(prs.write.b);prs.swap();}
+    gradP.use();gl.uniform2f(gradP.u.texelSize,ts[0],ts[1]);gl.uniform1i(gradP.u.uPressure,prs.read.at(0));
+    gl.uniform1i(gradP.u.uVelocity,vel.read.at(1));blit(vel.write.b);vel.swap();
+    advP.use();gl.uniform2f(advP.u.texelSize,ts[0],ts[1]);const vid=vel.read.at(0);
+    gl.uniform1i(advP.u.uVelocity,vid);gl.uniform1i(advP.u.uSource,vid);gl.uniform1f(advP.u.dt,dt);
+    gl.uniform1f(advP.u.dissipation,C.VD);blit(vel.write.b);vel.swap();
+    gl.viewport(0,0,dw,dh);gl.uniform1i(advP.u.uVelocity,vel.read.at(0));gl.uniform1i(advP.u.uSource,dye.read.at(1));
+    gl.uniform1f(advP.u.dissipation,C.DD);blit(dye.write.b);dye.swap();}
+
+  function render(){
+    gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);gl.enable(gl.BLEND);
+    const w=gl.drawingBufferWidth,h=gl.drawingBufferHeight;gl.viewport(0,0,w,h);
+    colP.use();gl.uniform4f(colP.u.color,C.BACK[0]/255,C.BACK[1]/255,C.BACK[2]/255,1);blit(null);
+    const p=SHADE?dispS:disp;p.use();if(SHADE)gl.uniform2f(p.u.texelSize,1/w,1/h);
+    gl.uniform1i(p.u.uTexture,dye.read.at(0));blit(null);}
+
+  /* pointer input (read from window; canvas sits behind content) */
+  const ptr={x:0,y:0,dx:0,dy:0,moved:false,seen:false,color:gen()};
+  function move(cx,cy,k){const r=canvas.getBoundingClientRect(),x=cx-r.left,y=cy-r.top;
+    if(!ptr.seen){ptr.seen=true;ptr.x=x;ptr.y=y;return;}
+    ptr.dx=(x-ptr.x)*k;ptr.dy=(y-ptr.y)*k;ptr.x=x;ptr.y=y;ptr.moved=true;}
+  addEventListener("mousemove",e=>move(e.clientX,e.clientY,5));
+  addEventListener("touchmove",e=>move(e.touches[0].clientX,e.touches[0].clientY,8),{passive:true});
+  addEventListener("touchstart",e=>{ptr.seen=false;move(e.touches[0].clientX,e.touches[0].clientY,8);},{passive:true});
+
+  /* load burst + invisible auto-cursor orbiting the centre forever */
+  init();multi(34);
+  const stack=[];for(let i=0;i<8;i++)stack.push(10+parseInt(Math.random()*10));
+  const t0=Date.now();let ang=0,seeded=false,px=0,py=0,vc=null,vct=0,lastCol=Date.now();
+  function orbit(){
+    if(Date.now()-t0<700)return;
+    const cx=canvas.width/2,cy=canvas.height/2,base=Math.min(300,canvas.width*.35,canvas.height*.35);
+    const r=base*(.72+.28*Math.sin(ang*.37));ang+=.026;
+    const x=cx+Math.cos(ang)*r,y=cy+Math.sin(ang)*r;
+    if(!seeded){seeded=true;px=x;py=y;return;}
+    if(!vc||Date.now()-vct>120){vc=gen();vc.r*=3.2;vc.g*=3.2;vc.b*=3.2;vct=Date.now();}
+    const dx=(x-px)*9,dy=(y-py)*9;px=x;py=y;splat(x,y,dx,dy,vc);}
+  function loop(){
+    if(canvas.width!=canvas.clientWidth||canvas.height!=canvas.clientHeight){canvas.width=canvas.clientWidth;canvas.height=canvas.clientHeight;init();}
+    orbit();
+    if(stack.length)multi(stack.pop());
+    if(ptr.moved){splat(ptr.x,ptr.y,ptr.dx,ptr.dy,ptr.color);ptr.moved=false;}
+    if(lastCol+100<Date.now()){lastCol=Date.now();ptr.color=gen();}
+    step(.016);render();requestAnimationFrame(loop);}
+  loop();
+}
+try{fluid(document.getElementById("fx"));}catch(e){console.warn("Fluid background disabled:",e);}
+
+/* ---------- Entrance choreography ---------- */
+document.querySelectorAll("[data-w]").forEach(el=>{
+  const [base,step,dy]=el.dataset.w.split(",").map(Number);
+  const words=el.textContent.trim().split(/\s+/);el.textContent="";
+  words.forEach((w,i)=>{const s=document.createElement("span");s.className="w";s.textContent=w;
+    s.style.setProperty("--dy",dy+"px");s.style.transitionDelay=(base+i*step)+"ms";
+    s.style.transitionDuration=(el.id==="h1"?720:600)+"ms";el.appendChild(s);
+    if(i<words.length-1)el.appendChild(document.createTextNode(" "));});
+});
+document.querySelectorAll(".rv").forEach(el=>{el.style.transitionDelay=(el.dataset.d||0)+"ms";});
+setTimeout(()=>{document.querySelectorAll(".rv,.w").forEach(el=>el.classList.add("in"));},50);
+
+/* ---------- Gateway client ---------- */
+const $=s=>document.querySelector(s);
+const log=$("#log");
+const st={t:0,a:0,b:0,saved:0};
+let busy=false;
+
+function add(role,text){
+  const d=document.createElement("div");d.className="msg "+role;
+  const who=document.createElement("small");who.textContent=role==="user"?"You":"Sentry-Gate";
+  const p=document.createElement("p");p.textContent=text;
+  d.append(who,p);log.appendChild(d);log.scrollTop=log.scrollHeight;return d;
+}
+function badge(d,source,m){
+  const b=document.createElement("span");
+  const edge=source==="local_system_one";
+  b.className="mb "+(edge?"t1":"t2");
+  b.textContent=edge
+    ?`SYSTEM 1 [EDGE] | Latency: ${m.latency_ms}ms | Saved: $${m.cost_saved_usd}`
+    :`SYSTEM 2 [AWS BEDROCK] | Latency: ${m.latency_ms}ms | Profile: us.amazon.nova-lite-v1:0`;
+  d.appendChild(b);
+}
+function paint(){
+  $("#sT").textContent=st.t;$("#sA").textContent=st.a;$("#sB").textContent=st.b;
+  $("#sS").textContent="$"+st.saved.toFixed(4);
+}
+function goConsole(){
+  const el=$("#console");
+  if(window.lenis)window.lenis.scrollTo(el,{offset:-20});else el.scrollIntoView({behavior:"smooth"});
+}
+async function send(prompt){
+  prompt=prompt.trim();if(!prompt||busy)return;busy=true;
+  add("user",prompt);
+  const w=add("assistant","Evaluating heuristic routing rules…");w.classList.add("wait");
+  try{
+    const r=await fetch(API+"/v1/route",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt})});
+    if(!r.ok)throw new Error("Routing error ("+r.status+"): "+await r.text());
+    const d=await r.json();
+    w.classList.remove("wait");w.querySelector("p").textContent=d.response;badge(w,d.source,d.metrics);
+    st.t++;
+    if(d.source==="local_system_one"){st.a++;st.saved+=d.metrics.cost_saved_usd;}else st.b++;
+    paint();
+  }catch(e){
+    w.classList.remove("wait");w.classList.add("err");
+    w.querySelector("p").textContent=e instanceof TypeError
+      ?"Gateway unreachable. Check that the backend is running at "+API+" and that CORS is enabled."
+      :e.message;
+  }
+  busy=false;log.scrollTop=log.scrollHeight;
+}
+document.querySelectorAll("form[data-send]").forEach(f=>f.addEventListener("submit",e=>{
+  e.preventDefault();const i=f.querySelector("input");const v=i.value;i.value="";
+  if(f.hasAttribute("data-go"))goConsole();send(v);
+}));
+document.querySelectorAll(".chip").forEach(c=>c.addEventListener("click",()=>{goConsole();send(c.dataset.p);}));
+document.querySelectorAll('a[href^="#"]').forEach(a=>a.addEventListener("click",e=>{
+  const id=a.getAttribute("href");const el=id==="#top"?document.body:document.querySelector(id);if(!el)return;
+  e.preventDefault();window.lenis?window.lenis.scrollTo(id==="#top"?0:el,{offset:id==="#top"?0:-20}):el.scrollIntoView({behavior:"smooth"});
+}));
+
+add("assistant","Gateway initialized. Send a prompt to evaluate routing performance.");
+
+async function ping(){
+  let ok=false;try{ok=(await fetch(API+"/health")).ok;}catch(e){}
+  const s=$("#status");s.classList.toggle("ok",ok);s.querySelector("em").textContent="STATUS: "+(ok?"ONLINE":"OFFLINE");
+}
+ping();setInterval(ping,8000);
+</script>
+<script type="module">
+import Lenis from "lenis";
+const lenis=new Lenis({smoothWheel:true});window.lenis=lenis;
+function raf(t){lenis.raf(t);requestAnimationFrame(raf);}requestAnimationFrame(raf);
+</script>
+</body>
+</html>

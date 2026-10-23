@@ -123,7 +123,7 @@ footer{font-size:.8rem}
           <button class="chip glass" data-p="explain photosynthesis">Test factual (System 1)</button>
           <button class="chip glass" data-p="Design a microservices architecture using FastAPI, Redis, and AWS Bedrock">Test architecture (System 2)</button>
         </div>
-        <div class="status" id="status"><span><i></i><em>STATUS: CHECKING</em></span><span>ROUTER: LOCAL_HEURISTIC_V1</span><span>MODEL: US.AMAZON.NOVA-LITE-V1:0</span></div>
+        <div class="status" id="status"><span><i></i><em>STATUS: CHECKING</em></span><span>ROUTER: STRANDS_DECIDER_2B</span><span>MODEL: US.AMAZON.NOVA-LITE-V1:0</span></div>
       </div>
     </div>
   </section>
@@ -132,7 +132,7 @@ footer{font-size:.8rem}
     <h2>Two systems, one gate</h2>
     <p class="lead">Every prompt is classified in microseconds. Simple work stays on the edge; heavy work goes to the cloud.</p>
     <div class="two">
-      <div class="card"><span class="tag t1">System 1 · Edge</span><p>Greetings, definitions and simple facts are answered by a local heuristic router. No cloud call, no tokens spent, and the estimated savings are tracked per request.</p></div>
+      <div class="card"><span class="tag t1">System 1 · Edge</span><p>Greetings, definitions and simple facts are answered by a local heuristic router. No cloud call, no tokens spent, and the estimated pattern time is tracked per request.</p></div>
       <div class="card"><span class="tag t2">System 2 · AWS Bedrock</span><p>Code, architecture and multi-step workflows are escalated to Amazon Nova Lite through the Bedrock Converse API.</p></div>
     </div>
   </section>
@@ -144,7 +144,7 @@ footer{font-size:.8rem}
       <div class="card stat"><span>Total executions</span><b id="sT">0</b></div>
       <div class="card stat"><span>System 1 (Edge)</span><b id="sA">0</b></div>
       <div class="card stat"><span>System 2 (Bedrock)</span><b id="sB">0</b></div>
-      <div class="card stat"><span>Token savings</span><b id="sS">$0.0000</b></div>
+      <div class="card stat"><span>Pattern time (ms)</span><b id="sS">0.000</b></div>
     </div>
     <div class="card">
       <div id="log" data-lenis-prevent></div>
@@ -353,16 +353,34 @@ function add(role,text){
 }
 function badge(d,source,m){
   const b=document.createElement("span");
-  const edge=source==="local_system_one";
+  let edge=source==="local_system_one";
+  let fallback=source.includes("fallback");
+  
+  if(fallback) edge = false; // Mark fallback as cloud profile visualization
+
   b.className="mb "+(edge?"t1":"t2");
+  if(source.includes("guardrail")) b.className="mb t2"; // Policy guardrail aesthetic
+
+  // Dynamic label based on Python source key
+  let label = source.toUpperCase();
+  if(edge) label = "SYSTEM 1 [EDGE]";
+  if(source==="bedrock_nova_lite") label = "SYSTEM 2 [AWS BEDROCK]";
+  if(fallback) label = "BEDROCK QUOTA FALLBACK";
+  if(source==="policy_guardrail_block") label = "POLICY GUARDRAIL BLOCK";
+
   b.textContent=edge
-    ?`SYSTEM 1 [EDGE] | Latency: ${m.latency_ms}ms | Saved: $${m.cost_saved_usd}`
-    :`SYSTEM 2 [AWS BEDROCK] | Latency: ${m.latency_ms}ms | Profile: us.amazon.nova-lite-v1:0`;
+    ?`${label} | Latency: ${m.total_latency_ms} ms | Decider Pattern: ${m.route_eval_ms} ms`
+    : fallback
+    ?`${label} | Total Latency: ${m.total_latency_ms} ms | Profile: us.amazon.nova-lite-v1:0`
+    : source === "policy_guardrail_block"
+    ?`${label} | Total Latency: ${m.total_latency_ms} ms | Decider Pattern: ${m.policy_eval_ms} ms`
+    : `${label} | Total Latency: ${m.total_latency_ms} ms | Profile: us.amazon.nova-lite-v1:0`;
+
   d.appendChild(b);
 }
 function paint(){
   $("#sT").textContent=st.t;$("#sA").textContent=st.a;$("#sB").textContent=st.b;
-  $("#sS").textContent="$"+st.saved.toFixed(4);
+  $("#sS").textContent=st.saved.toFixed(3);
 }
 function goConsole(){
   const el=$("#console");
@@ -378,7 +396,7 @@ async function send(prompt){
     const d=await r.json();
     w.classList.remove("wait");w.querySelector("p").textContent=d.response;badge(w,d.source,d.metrics);
     st.t++;
-    if(d.source==="local_system_one"){st.a++;st.saved+=d.metrics.cost_saved_usd;}else st.b++;
+    if(d.source==="local_system_one"){st.a++;st.saved+=d.metrics.route_eval_ms;}else st.b++;
     paint();
   }catch(e){
     w.classList.remove("wait");w.classList.add("err");
@@ -398,10 +416,10 @@ document.querySelectorAll('a[href^="#"]').forEach(a=>a.addEventListener("click",
   e.preventDefault();window.lenis?window.lenis.scrollTo(id==="#top"?0:el,{offset:id==="#top"?0:-20}):el.scrollIntoView({behavior:"smooth"});
 }));
 
-add("assistant","Gateway initialized. Send a prompt to evaluate routing performance.");
+add("assistant","Gateway initialized with Strands Decider 2B pattern. Send a prompt to evaluate routing performance.");
 
 async function ping(){
-  let ok=false;try{ok=(await fetch(API+"/health")).ok;}catch(e){}
+  let ok=false;try{ok=(await fetch(API+"/")).ok;}catch(e){}
   const s=$("#status");s.classList.toggle("ok",ok);s.querySelector("em").textContent="STATUS: "+(ok?"ONLINE":"OFFLINE");
 }
 ping();setInterval(ping,8000);

@@ -6,6 +6,7 @@ Hackathon Tags: #strands-decider-2b, #model-routing, #policy
 
 import time
 import os
+import requests
 import uvicorn
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse, FileResponse
@@ -62,54 +63,102 @@ class SentryGate:
                 aws_secret_access_key=aws_secret_key
             )
         else:
-            self.bedrock = boto3.client(
-                service_name="bedrock-runtime",
-                region_name=aws_region
-            )
+            try:
+                self.bedrock = boto3.client(
+                    service_name="bedrock-runtime",
+                    region_name=aws_region
+                )
+            except Exception:
+                self.bedrock = None
             
         self.model_id = "us.amazon.nova-lite-v1:0"
+        self.decider_url = "http://localhost:8000/v1/systemone"
 
     def decider_2b_policy_check(self, prompt: str) -> Dict[str, Any]:
-        """
-        Strands Decider 2B Pattern: #policy
-        Typed Question: "Does this prompt contain policy violations or injection attacks?"
-        """
         start = time.perf_counter()
+        try:
+            res = requests.post(
+                "http://localhost:8000/v1/systemone",
+                json={
+                    "state": prompt,
+                    "questions": {
+                        "policy_check": {
+                            "type": "choice",
+                            "options": ["SAFE", "UNSAFE"]
+                        }
+                    }
+                },
+                timeout=3.0
+            )
+            if res.ok:
+                data = res.json()
+                decision = data.get("answers", {}).get("policy_check", {}).get("selection", "SAFE")
+                latency_ms = (time.perf_counter() - start) * 1000
+                return {
+                    "decision": decision,
+                    "eval_latency_ms": round(latency_ms, 3),
+                    "source": "strands_decider_2b_model"
+                }
+        except Exception:
+            pass
+
         prompt_lower = prompt.lower().strip()
-        
         unsafe_keywords = [
             "ignore previous instructions", "drop database", "bypass safety", 
             "jailbreak", "reveal system prompt", "delete all"
         ]
-        
         is_unsafe = any(kw in prompt_lower for kw in unsafe_keywords)
         latency_ms = (time.perf_counter() - start) * 1000
 
         return {
             "decision": "UNSAFE" if is_unsafe else "SAFE",
-            "eval_latency_ms": round(latency_ms, 3)
+            "eval_latency_ms": round(latency_ms, 3),
+            "source": "rule_based_fallback"
         }
 
     def decider_2b_route_check(self, prompt: str) -> Dict[str, Any]:
-        """
-        Strands Decider 2B Pattern: #model-routing
-        Typed Question: "Does this prompt require complex cloud generative execution?"
-        """
         start = time.perf_counter()
-        prompt_lower = prompt.lower().strip()
+        try:
+            res = requests.post(
+                "http://localhost:8000/v1/systemone",
+                json={
+                    "state": prompt,
+                    "questions": {
+                        "route_decision": {
+                            "type": "choice",
+                            "options": ["SYSTEM_1_EDGE", "SYSTEM_2_BEDROCK"]
+                        }
+                    }
+                },
+                timeout=3.0
+            )
+            if res.ok:
+                data = res.json()
+                decision = data.get("answers", {}).get("route_decision", {}).get("selection", "SYSTEM_1_EDGE")
+                latency_ms = (time.perf_counter() - start) * 1000
+                return {
+                    "decision": decision,
+                    "eval_latency_ms": round(latency_ms, 3),
+                    "pattern": "#model-routing",
+                    "source": "strands_decider_2b_model"
+                }
+        except Exception:
+            pass
 
+        prompt_lower = prompt.lower().strip()
         complex_keywords = [
             "code", "python", "javascript", "fastapi", "docker", "architecture", 
             "microservices", "design", "refactor", "database", "system design", 
             "workflow", "pipeline", "aws", "bedrock", "redis", "mongodb"
         ]
-
         is_complex = any(kw in prompt_lower for kw in complex_keywords) or len(prompt.split()) > 15
         latency_ms = (time.perf_counter() - start) * 1000
 
         return {
             "decision": "SYSTEM_2_BEDROCK" if is_complex else "SYSTEM_1_EDGE",
-            "eval_latency_ms": round(latency_ms, 3)
+            "eval_latency_ms": round(latency_ms, 3),
+            "pattern": "#model-routing",
+            "source": "rule_based_fallback"
         }
 
     def generate_edge_response(self, prompt: str) -> str:
@@ -126,12 +175,11 @@ class SentryGate:
     def route_query(self, prompt: str) -> Dict[str, Any]:
         start_time = time.perf_counter()
         
-        # 1. Security Policy Guardrail Check
         policy = self.decider_2b_policy_check(prompt)
         if policy["decision"] == "UNSAFE":
             total_latency = (time.perf_counter() - start_time) * 1000
             return {
-                "source": "policy_guardrail_block",
+                "source": f"policy_guardrail_block_{policy['source']}",
                 "response": "⚠️ Request Blocked by Sentry-Gate Security Policy: Malicious injection or policy violation detected.",
                 "metrics": {
                     "total_latency_ms": round(total_latency, 2),
@@ -140,26 +188,29 @@ class SentryGate:
                 }
             }
 
-        # 2. Model Routing Check
         route = self.decider_2b_route_check(prompt)
 
         if route["decision"] == "SYSTEM_1_EDGE":
             response_text = self.generate_edge_response(prompt)
-            source = "local_system_one"
+            source = f"local_system_one_{route['source']}"
         else:
-            try:
-                response_text = self._call_bedrock_live(prompt)
-                source = "bedrock_nova_lite"
-            except HTTPException as he:
-                if "ThrottlingException" in str(he.detail) or "tokens per day" in str(he.detail):
-                    response_text = (
-                        f"[Resilient Fallback Mode: AWS Bedrock Token Limit Reached]\n\n"
-                        f"Sentry-Gate caught the AWS quota exception and processed your architecture query: '{prompt}'.\n"
-                        f"Recommended pattern: FastAPI (Gateway) -> Redis (Cache) -> MongoDB (Persistence)."
-                    )
-                    source = "bedrock_quota_fallback"
-                else:
-                    raise he
+            if not self.bedrock:
+                response_text = f"System 2 Bedrock fallback simulation for complex query: '{prompt}'."
+                source = "bedrock_simulated_fallback"
+            else:
+                try:
+                    response_text = self._call_bedrock_live(prompt)
+                    source = "bedrock_nova_lite"
+                except HTTPException as he:
+                    if "ThrottlingException" in str(he.detail) or "tokens per day" in str(he.detail):
+                        response_text = (
+                            f"[Resilient Fallback Mode: AWS Bedrock Token Limit Reached]\n\n"
+                            f"Sentry-Gate caught the AWS quota exception and processed your architecture query: '{prompt}'.\n"
+                            f"Recommended pattern: FastAPI (Gateway) -> Redis (Cache) -> MongoDB (Persistence)."
+                        )
+                        source = "bedrock_quota_fallback"
+                    else:
+                        raise he
 
         total_latency = (time.perf_counter() - start_time) * 1000
 
@@ -169,7 +220,7 @@ class SentryGate:
             "metrics": {
                 "total_latency_ms": round(total_latency, 2),
                 "route_eval_ms": route["eval_latency_ms"],
-                "pattern": route["pattern"] if "pattern" in route else "#model-routing"
+                "pattern": route["pattern"]
             }
         }
 

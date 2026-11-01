@@ -179,7 +179,7 @@ class SentryGate:
         if policy["decision"] == "UNSAFE":
             total_latency = (time.perf_counter() - start_time) * 1000
             return {
-                "source": f"policy_guardrail_block_{policy['source']}",
+                "source": "policy_guardrail_block",
                 "response": "⚠️ Request Blocked by Sentry-Gate Security Policy: Malicious injection or policy violation detected.",
                 "metrics": {
                     "total_latency_ms": round(total_latency, 2),
@@ -192,7 +192,7 @@ class SentryGate:
 
         if route["decision"] == "SYSTEM_1_EDGE":
             response_text = self.generate_edge_response(prompt)
-            source = f"local_system_one_{route['source']}"
+            source = "local_system_one"
         else:
             if not self.bedrock:
                 response_text = f"System 2 Bedrock fallback simulation for complex query: '{prompt}'."
